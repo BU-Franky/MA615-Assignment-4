@@ -46,3 +46,27 @@ suppressPackageStartupMessages(
   options(crayon.enabled = FALSE)
   theme_set(theme_light())
 ```
+
+
+```{r include=FALSE}
+library(tnum)
+tnum.authorize("mssp1.bu.edu")
+tnum.setSpace("shared-testspace")
+# tnum.getDBPathList(taxonomy = "subject", levels = 1)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
