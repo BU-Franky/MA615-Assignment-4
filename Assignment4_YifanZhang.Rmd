@@ -49,13 +49,6 @@ suppressPackageStartupMessages(
   theme_set(theme_light())
 ```
 
-```{r include=FALSE}
-library(tnum)
-tnum.authorize("mssp1.bu.edu")
-tnum.setSpace("MSSP-TEXT-1")
-# tnum.getDBPathList(taxonomy = "subject", levels = 1)
-```
-
 # Task 1: Pick a book
 
 The book I picked is _David Copperfield_ by Charles Dickens, which talk about the life of David Copperfield from childhood to maturity. The moral lesson that David Copperfield could be said to impart is that kindness, sympathy, and generosity are more important and perhaps more desirable than wealth, power, and social position.
