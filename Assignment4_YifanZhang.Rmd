@@ -27,6 +27,7 @@ suppressPackageStartupMessages(
   library(wordcloud)
   library(reshape2)
   library(styler)
+  library(RColorBrewer)
   source("Book2TN-v6A-1.R")
 
   opts_chunk$set(
@@ -51,113 +52,121 @@ suppressPackageStartupMessages(
 
 # Task 1: Pick a book
 
-The book I picked is _David Copperfield_ by Charles Dickens, which talk about the life of David Copperfield from childhood to maturity. The moral lesson that David Copperfield could be said to impart is that kindness, sympathy, and generosity are more important and perhaps more desirable than wealth, power, and social position.
+The book I picked is _Christmas eve_ by Robert Browning. The poem “Christmas Eve,” by Robert Browning, with the accompanying poem “Easter Day,” seems not to have attracted much notice from the readers of poetry, although highly prized by a few. This is, perhaps, to be attributed, in a great measure, to what many would call a considerable degree of obscurity. 
 
 ```{r, include=FALSE}
 gutenberg_list <- gutenberg_metadata 
-David <- gutenberg_download(c(766))
+CHRISTMAS <- gutenberg_download(c(6670))
+# David <- gutenberg_download(c(766))
+# write.table(CHRISTMAS, file = "CHRISTMAS.txt", col.names = FALSE, row.names = FALSE)
 # write.table(David, file = "David.txt", col.names = FALSE, row.names = FALSE)
+CHRISTMAS <- read.table("CHRISTMAS.txt", header = TRUE)
 ```
 
 # Task 2: Words analysis
 
 ## Words Frequency 
 
-For this part, firstly, I extract `chapters` from txt file and utilize `stop_words` lexicon to remove analytically useless words and calculate rest words' frequencies and proportions. Here is result (only frequency > 400 words will be displayed). 
+For this part, firstly, I extract `chapters` from txt file and utilize `stop_words` lexicon to remove analytically useless words and calculate rest words' frequencies and proportions. Here is result (only frequency > 10 words will be displayed). 
 
-```{r echo=FALSE, fig.height=3, fig.width=5, fig.cap="Word Frequency (>400)"}
+```{r echo=FALSE, fig.height=3, fig.width=5, fig.cap="Word Frequency (>10)"}
 # convert to one-word-per-row format
-tidy_David <- David %>% mutate(linenumber = row_number(), 
+tidy_CHRISTMAS <- CHRISTMAS %>% mutate(linenumber = row_number(), 
                  chapter = cumsum(str_detect(text, 
                                              regex("^chapter [\\divxlc]",
                                            ignore_case = TRUE)))) %>% unnest_tokens(word, text)
 # remove stop words (not useful for analysis)
-tidy_David <- tidy_David %>% anti_join(stop_words, by = "word")
+tidy_CHRISTMAS <- tidy_CHRISTMAS %>% anti_join(stop_words, by = "word")
 
-Frequency <- tidy_David %>% 
+Frequency <- tidy_CHRISTMAS %>% 
   count(word, sort = TRUE) %>% 
   mutate(word = reorder(word, n), proportion = formattable::percent(n/sum(n)))
 
-tidy_David %>% 
+tidy_CHRISTMAS %>% 
   count(word, sort = TRUE) %>% 
   mutate(word = reorder(word, n), proportion = formattable::percent(n/sum(n))) %>% 
-  filter(n > 400) %>% 
+  filter(n > 10) %>% 
   ggplot(aes(x=proportion, y=word, fill = word)) + 
   geom_col() + 
-  labs(y = NULL, x = "proportion")
+  labs(y = NULL, x = "proportion") + 
+  theme(legend.position = "none")
 ```
 
-Figure 1 shows that most common used words in _David Copperfield_ are `micawber`, `aunt`, `miss` and `peggotty`, which account for over 0.6% of total words. To be more clear and get a wider view of it, I also include `wordcloud` to visualize it, which is quite a fancy plot. 
+Figure 1 shows that most common used words in _Christmas Eve_ are `god`, `love`, and `heart`, which account for over 0.6% of total words. To be more clear and get a wider view of it, I also include `wordcloud` to visualize it, which is quite a fancy plot. 
 
-```{r echo=FALSE, fig.height=4, fig.width=5, fig.cap="David Copperfield wordcloud (Top 100 words)"}
+```{r echo=FALSE, fig.height=4.5, fig.width=5, fig.cap="Christmas Eve wordcloud (Top 100 words)"}
 # word clouds
-tidy_David %>%
+tidy_CHRISTMAS %>%
   anti_join(stop_words, by = "word") %>%
   count(word) %>%
-  with(wordcloud(word, n, max.words = 100, scale=c(3,.2)))
+  with(wordcloud(word = word, freq = n, max.words = 100, scale=c(3,.2), 
+                 random.order = FALSE, rot.per = .35, colors = brewer.pal(6, "Dark2")))
 ```
 
-Figure 2 shows us Top 100 frequently used words in _David Copperfield_ and the sizes of words in cloud represent their frequency, the bigger, the more frequent. Actually, only calculate frequencies of a book is not enough. For the next step, I would go deeper into sentimental analysis of _David Copperfield_. 
+Figure 2 shows us Top 100 frequently used words in _Christmas Eve_ and the sizes of words in cloud represent their frequency, the bigger, the more frequent. Actually, only calculate frequencies of a book is not enough. Thus, for the next step, I would go deeper into sentimental analysis of _Christmas Eve_. 
 
 
 ## Sentimental test
 
-As to sentimental analysis, R studio tidyverse provide three sentimental lexicon, `AFINN`, `BING` and `NRC`, for us to do words based analysis. To begin with, I utilize `BING` to label words in _David Copperfield_ with binary sentimental attitudes, `positive` and `negative`. Here is the visualization of result: 
+As to sentimental analysis, R studio tidyverse provide three sentimental lexicon, `AFINN`, `BING` and `NRC`, for us to do words based analysis. To begin with, I utilize `BING` to label words in _Christmas Eve_ with binary sentimental attitudes, `positive` and `negative`. Here is the visualization of result: 
 
-```{r echo=FALSE, fig.height=2.5, fig.width=5, fig.cap="David Copperfield Sentiment Analysis (bing)"}
+```{r echo=FALSE, fig.height=2.5, fig.width=5, fig.cap="Christmas Eve Sentiment Analysis (bing)"}
 # get_sentiments("afinn")
 # get_sentiments("bing")
 # get_sentiments("nrc")
-nrc_joy <- get_sentiments("nrc") %>% 
-  filter(sentiment == "joy")
+nrc_joy <- get_sentiments("nrc") %>% filter(sentiment == "joy")
 # tidy_David %>% 
 #   inner_join(nrc_joy, by = "word") %>% 
 #   count(word, sort = TRUE)
 
-David_sentiment <- tidy_David %>%
+CHRISTMAS_sentiment <- tidy_CHRISTMAS %>%
   inner_join(get_sentiments("bing"), by = "word") %>%
-  count(chapter, index = linenumber %/% 80, sentiment) %>%
+  count(chapter, index = linenumber %/% 20, sentiment) %>%
   pivot_wider(names_from = sentiment, values_from = n, values_fill = 0) %>% 
   mutate(sentiment = positive - negative)
 
-# sentiment by chapter
-ggplot(David_sentiment, aes(index, sentiment, fill = factor(chapter))) +
+# sentiment by index
+ggplot(CHRISTMAS_sentiment, aes(index, sentiment, fill = factor(index))) +
   geom_col(show.legend = FALSE)
 ```
 
-Figure 3 illustrates that, under the lexicon `BING`, the plot of _David Copperfield_ changes toward more negative than positive even some of plots indicate fairly positive. Then I decide to utilize more lexicons to continue sentimental analysis. 
+Figure 3 illustrates that, under the lexicon `BING`, the plot of _Christmas Eve_ changes toward more negative than positive even some of plots indicate fairly positive. Then I decide to utilize more lexicons to continue my sentimental analysis. 
 
-```{r echo=FALSE, fig.height=5, fig.width=5, fig.cap="Comparision of three lexicons on David Copperfield"}
+\newpage
+
+```{r echo=FALSE, fig.height=5, fig.width=5, fig.cap="Comparision of  lexicons on Christmas Eve"}
 # compare the three sentiment dictionaries
-afinn <- tidy_David %>% 
+afinn <- tidy_CHRISTMAS %>% 
   inner_join(get_sentiments("afinn"), by = "word") %>% 
-  group_by(index = linenumber %/% 80) %>% 
+  group_by(index = linenumber %/% 20) %>% 
   summarise(sentiment = sum(value)) %>% 
   mutate(method = "AFINN")
 
 bing_and_nrc <- bind_rows(
- tidy_David %>% 
+ tidy_CHRISTMAS %>% 
     inner_join(get_sentiments("bing"), by = "word") %>%
     mutate(method = "Bing et al."),
-  tidy_David %>% 
+  tidy_CHRISTMAS %>% 
     inner_join(get_sentiments("nrc") %>% 
                  filter(sentiment %in% c("positive", 
                                          "negative"))
     , by = "word") %>%
     mutate(method = "NRC")) %>%
-  count(method, index = linenumber %/% 80, sentiment) %>%
+  count(method, index = linenumber %/% 20, sentiment) %>%
   pivot_wider(names_from = sentiment,
               values_from = n,
               values_fill = 0) %>% 
   mutate(sentiment = positive - negative)
 
 bind_rows(afinn, select(bing_and_nrc, c(index, sentiment, method))) %>% 
-  ggplot(aes(x = index, y = sentiment, fill = method)) + ylim(c(-60, 60)) +
+  ggplot(aes(x = index, y = sentiment, fill = method)) + ylim(c(-25, 25)) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~method, ncol = 1, scales = "free_y")
 ```
 
-The three different lexicons for calculating sentiment give results that are different in an absolute sense but have similar relative trajectories through the novel. We see similar dips and peaks in sentiment at about the same places in the novel, but absolute values are significantly different. The AFINN lexicon gives the largest absolute values, with high negative values, while the BING lexion shows similar patterns but absolute values are relatively smaller. Comparatively, the NRC lexicon give a for more positive sentimental result. To figure out why this happens, I decide to look into words in these three lexicons. 
+The three different lexicons for calculating sentiment give results that are different in an absolute sense but have similar relative trajectories through the novel. We see similar dips and peaks in sentiment at about the same places in the novel, but absolute values are significantly different. 
+
+The AFINN lexicon gives the largest absolute values, with high positive values, while the NRC lexion shows similar patterns but absolute values are relatively smaller. Comparatively, the BING lexicon give a littleb bit more negative result. To figure out why this happens, I decide to look into words in these three lexicons. 
 
 The following table shows proportions of positive and negative words in lexicons: 
 
@@ -200,7 +209,7 @@ sentiments_pairs <- rbind(
   
   get_sentiments("bing") %>% cbind(lexicon = "BING")
 )
-bing_word_count <- tidy_David %>% 
+bing_word_count <- tidy_CHRISTMAS %>% 
   inner_join(sentiments_pairs, by = "word") %>% 
   count(word, sentiment, lexicon, sort = TRUE) %>% ungroup()
 # visualize top 10 positive and negative words
@@ -216,44 +225,52 @@ plot_word_count <- bing_word_count %>%
        y = NULL)
 ```
 
-```{r, echo=FALSE, fig.height=8, fig.width=7, fig.cap="Top 10 Negative and Positive Words"}
+```{r, echo=FALSE, fig.height=7, fig.width=7, fig.cap="Top 10 Negative and Positive Words"}
 plot_word_count
 ```
 
 Both of plots indicate that the most common used negative word is `miss` while the most frequently used positive one is `love`. We can use this visualization to see the most important positive and negative words, but the sizes of the words are not comparable across sentiments.
 
-```{r, echo=FALSE, fig.height=5, fig.width=5, fig.cap="Comparison Cloud (BING)"}
-# comparison clouds
-tidy_David %>%
-  inner_join(get_sentiments("bing"), by = "word") %>%
-  count(word, sentiment, sort = TRUE) %>%
-  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
-  comparison.cloud(colors = c("dodgerblue3", "firebrick1"),
-                   max.words = 100, scale=c(6,.2))
-```
+
+\newpage
 
 # Extra Credits
 
 Apart from `AFINN`, `NRC` and `BING`, I include lexicon `loughran`. here is the proportion of negative and positive words in this lexicon. 
 
 ```{r echo=FALSE}
+# get_sentiments("loughran") %>% count(sentiment, sort = TRUE)
 get_sentiments("loughran") %>% filter(sentiment == "negative" | sentiment == "positive") %>%
   count(sentiment) %>% mutate(proportion =  formattable::percent(n/sum(n)))
 ```
 
-About this lexicon, it is weird that over 85% of words in this lexicon are `negative`. Next, I utilize it to do the similar research on book _David Copperfield_. 
+About this lexicon, it is weird that over 85% of words in this lexicon are `negative`. Next, I utilize it to do the similar research on book _Christmas Eve_. 
 
 ```{r echo=FALSE, fig.height=2.5, fig.width=5, fig.cap="David Copperfield Sentiment Analysis (loughran)"}
-David_sentiment <- tidy_David %>%
+CHRISTMAS_sentiment <- tidy_CHRISTMAS %>%
   inner_join(get_sentiments("loughran") %>% filter(sentiment == "negative" | sentiment == "positive"),
              by = "word") %>%
-  count(chapter, index = linenumber %/% 80, sentiment) %>%
+  count(chapter, index = linenumber %/% 20, sentiment) %>%
   pivot_wider(names_from = sentiment, values_from = n, values_fill = 0) %>% 
   mutate(sentiment = positive - negative)
 
 # sentiment by chapter
-ggplot(David_sentiment, aes(index, sentiment, fill = factor(chapter))) +
+ggplot(CHRISTMAS_sentiment, aes(index, sentiment, fill = factor(index))) +
   geom_col(show.legend = FALSE)
 ```
 
 No surprise, no matter how plots going on, the sentiment result shows greatly negative emotion, which can be explained by over 85% of words are `negative` in this lexicon. 
+
+\newpage
+
+# Appendix
+
+```{r, echo=FALSE, fig.height=5, fig.width=5, fig.cap="Comparison Cloud (BING)"}
+# comparison clouds
+tidy_CHRISTMAS %>%
+  inner_join(get_sentiments("bing"), by = "word") %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(colors = c("dodgerblue3", "firebrick1"),
+                   max.words = 100, scale=c(6,.2))
+```

@@ -47,14 +47,45 @@ suppressPackageStartupMessages(
   theme_set(theme_light())
 ```
 
+```{r}
+# gutenberg_list <- gutenberg_metadata 
+# n <- sample(gutenberg_list$gutenberg_id, 100, replace = FALSE)
+# 
+# store <- list()
+# for (i in 1: length(n)) {
+#   store[[i]] <- gutenberg_download(n[i])
+# }
+# 
+# 
+# for(i in 1: length(n)){
+#   # i = 1
+#   name = paste0("book", i, ".txt")
+#   write.table(store[[i]], file = name, col.names = FALSE, row.names = FALSE)
+# }
+```
 
 ```{r include=FALSE}
 library(tnum)
+CHRISTMAS_table <- read.table("CHRISTMAS.txt", header = TRUE)
 tnum.authorize("mssp1.bu.edu")
-tnum.setSpace("shared-testspace")
+tnum.setSpace("test2")
+# not::run  tnBooksFromLines(CHRISTMAS_table$text, "ROBERT_BROWNING_franky/CHRISTMAS_EVE")
+```
+
+```{r}
+# tnum.getDBPathList(taxonomy = "subject", levels = 2)
 # tnum.getDBPathList(taxonomy = "subject", levels = 1)
+q1 <- tnum.query(query = "ROBERT_BROWNING_franky/CHRISTMAS_EVE# has text", max = 2000)
+df_CHRISTMAS <- tnum.objectsToDf(q1) %>% dplyr::select(property, string.value)
+colnames(df_CHRISTMAS) <- c("type", "sentence")
 
-
+library(sentimentr)
+sentence_analysis <- sentiment(df_CHRISTMAS$sentence)
+sentence_analysis <- sentence_analysis %>% 
+  group_by(element_id) %>% 
+  summarise(sentiment = sum(sentiment))
+sentence_analysis %>% ggplot(aes(x = element_id, y = sentiment, fill = factor(element_id))) + 
+  geom_col() + labs(x = "sentence", y = NULL) + theme(legend.position = "none")
 ```
 
 
