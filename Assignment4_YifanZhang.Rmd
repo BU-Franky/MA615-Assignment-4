@@ -69,7 +69,7 @@ CHRISTMAS <- read.table("CHRISTMAS.txt", header = TRUE)
 
 For this part, firstly, I extract `chapters` from txt file and utilize `stop_words` lexicon to remove analytically useless words and calculate rest words' frequencies and proportions. Here is result (only frequency > 10 words will be displayed). 
 
-```{r echo=FALSE, fig.height=3, fig.width=5, fig.cap="Word Frequency (>10)"}
+```{r echo=FALSE, fig.height=3, fig.width=5, fig.cap="Christmas Eve Word Frequency (>10)"}
 # convert to one-word-per-row format
 tidy_CHRISTMAS <- CHRISTMAS %>% mutate(linenumber = row_number(), 
                  chapter = cumsum(str_detect(text, 
@@ -114,13 +114,18 @@ As to sentimental analysis, R studio tidyverse provide three sentimental lexicon
 # get_sentiments("afinn")
 # get_sentiments("bing")
 # get_sentiments("nrc")
-nrc_joy <- get_sentiments("nrc") %>% filter(sentiment == "joy")
+# write.table(get_sentiments("bing"), "bing.txt", row.names = FALSE)
+# read.table("bing.txt", header = TRUE)
+# write.table(get_sentiments("afinn"), "afinn.txt", row.names = FALSE)
+# write.table(get_sentiments("nrc"), "nrc.txt", row.names = FALSE)
+
+nrc_joy <- read.table("nrc.txt", header = TRUE) %>% filter(sentiment == "joy")
 # tidy_David %>% 
 #   inner_join(nrc_joy, by = "word") %>% 
 #   count(word, sort = TRUE)
 
 CHRISTMAS_sentiment <- tidy_CHRISTMAS %>%
-  inner_join(get_sentiments("bing"), by = "word") %>%
+  inner_join(read.table("bing.txt", header = TRUE), by = "word") %>%
   count(chapter, index = linenumber %/% 20, sentiment) %>%
   pivot_wider(names_from = sentiment, values_from = n, values_fill = 0) %>% 
   mutate(sentiment = positive - negative)
@@ -137,17 +142,17 @@ Figure 3 illustrates that, under the lexicon `BING`, the plot of _Christmas Eve_
 ```{r echo=FALSE, fig.height=5, fig.width=5, fig.cap="Comparision of  lexicons on Christmas Eve"}
 # compare the three sentiment dictionaries
 afinn <- tidy_CHRISTMAS %>% 
-  inner_join(get_sentiments("afinn"), by = "word") %>% 
+  inner_join(read.table("afinn.txt", header = TRUE), by = "word") %>% 
   group_by(index = linenumber %/% 20) %>% 
   summarise(sentiment = sum(value)) %>% 
   mutate(method = "AFINN")
 
 bing_and_nrc <- bind_rows(
  tidy_CHRISTMAS %>% 
-    inner_join(get_sentiments("bing"), by = "word") %>%
+    inner_join(read.table("bing.txt", header = TRUE), by = "word") %>%
     mutate(method = "Bing et al."),
   tidy_CHRISTMAS %>% 
-    inner_join(get_sentiments("nrc") %>% 
+    inner_join(read.table("nrc.txt", header = TRUE) %>% 
                  filter(sentiment %in% c("positive", 
                                          "negative"))
     , by = "word") %>%
@@ -173,20 +178,20 @@ The following table shows proportions of positive and negative words in lexicons
 ```{r include=TRUE, echo=FALSE}
 # count how many positive and negative 
 rbind(
-  get_sentiments("afinn") %>% mutate(sentiment = ifelse(get_sentiments("afinn")$value > 0, 
+  read.table("afinn.txt", header = TRUE) %>% mutate(sentiment = ifelse(read.table("afinn.txt", header = TRUE)$value > 0, 
                                                       "positive", "negative")) %>% 
   dplyr::select(word, sentiment) %>% 
   count(sentiment) %>% cbind(lexicon = "afinn") %>% 
   mutate(proportion = formattable::percent(n/sum(n))) %>% 
   dplyr::select(lexicon, sentiment, proportion), 
   
-  get_sentiments("nrc") %>% 
+  read.table("nrc.txt", header = TRUE) %>% 
   filter(sentiment %in% c("positive", "negative")) %>% 
   count(sentiment) %>% cbind(lexicon = "nrc") %>% 
   mutate(proportion = formattable::percent(n/sum(n))) %>% 
   dplyr::select(lexicon, sentiment, proportion), 
   
-  get_sentiments("bing") %>% 
+  read.table("bing.txt", header = TRUE) %>% 
   count(sentiment) %>% cbind(lexicon = "bing") %>% 
   mutate(proportion = formattable::percent(n/sum(n))) %>% 
   dplyr::select(lexicon, sentiment, proportion)
@@ -200,14 +205,14 @@ All three lexicons have more negative than positive words, but the ratio of nega
 ```{r include=FALSE}
 # Most common positive and negative words 
 sentiments_pairs <- rbind(
-   get_sentiments("afinn") %>% mutate(sentiment = ifelse(get_sentiments("afinn")$value > 0, 
+   read.table("afinn.txt", header = TRUE) %>% mutate(sentiment = ifelse(read.table("afinn.txt", header = TRUE)$value > 0, 
                                                       "positive", "negative")) %>% 
   dplyr::select(word, sentiment) %>% cbind(lexicon = "AFINN"), 
   
-  get_sentiments("nrc") %>% 
+  read.table("nrc.txt", header = TRUE) %>% 
   filter(sentiment %in% c("positive", "negative")) %>% cbind(lexicon = "NRC"), 
   
-  get_sentiments("bing") %>% cbind(lexicon = "BING")
+  read.table("bing.txt", header = TRUE) %>% cbind(lexicon = "BING")
 )
 bing_word_count <- tidy_CHRISTMAS %>% 
   inner_join(sentiments_pairs, by = "word") %>% 
@@ -225,7 +230,7 @@ plot_word_count <- bing_word_count %>%
        y = NULL)
 ```
 
-```{r, echo=FALSE, fig.height=7, fig.width=7, fig.cap="Top 10 Negative and Positive Words"}
+```{r, echo=FALSE, fig.height=7, fig.width=7, fig.cap="Top 10 Negative and Positive Words in Christmas Eve"}
 plot_word_count
 ```
 
@@ -240,15 +245,16 @@ Apart from `AFINN`, `NRC` and `BING`, I include lexicon `loughran`. here is the 
 
 ```{r echo=FALSE}
 # get_sentiments("loughran") %>% count(sentiment, sort = TRUE)
-get_sentiments("loughran") %>% filter(sentiment == "negative" | sentiment == "positive") %>%
+# write.table(get_sentiments("loughran"), "loughran.txt", row.names = FALSE)
+read.table("loughran.txt", header = TRUE) %>% filter(sentiment == "negative" | sentiment == "positive") %>%
   count(sentiment) %>% mutate(proportion =  formattable::percent(n/sum(n)))
 ```
 
 About this lexicon, it is weird that over 85% of words in this lexicon are `negative`. Next, I utilize it to do the similar research on book _Christmas Eve_. 
 
-```{r echo=FALSE, fig.height=2.5, fig.width=5, fig.cap="David Copperfield Sentiment Analysis (loughran)"}
+```{r echo=FALSE, fig.height=2.5, fig.width=5, fig.cap="Christmas Eve Sentiment Analysis (loughran)"}
 CHRISTMAS_sentiment <- tidy_CHRISTMAS %>%
-  inner_join(get_sentiments("loughran") %>% filter(sentiment == "negative" | sentiment == "positive"),
+  inner_join(read.table("loughran.txt", header = TRUE)  %>% filter(sentiment == "negative" | sentiment == "positive"),
              by = "word") %>%
   count(chapter, index = linenumber %/% 20, sentiment) %>%
   pivot_wider(names_from = sentiment, values_from = n, values_fill = 0) %>% 
@@ -268,7 +274,7 @@ No surprise, no matter how plots going on, the sentiment result shows greatly ne
 ```{r, echo=FALSE, fig.height=5, fig.width=5, fig.cap="Comparison Cloud (BING)"}
 # comparison clouds
 tidy_CHRISTMAS %>%
-  inner_join(get_sentiments("bing"), by = "word") %>%
+  inner_join(read.table("bing.txt", header = TRUE), by = "word") %>%
   count(word, sentiment, sort = TRUE) %>%
   acast(word ~ sentiment, value.var = "n", fill = 0) %>%
   comparison.cloud(colors = c("dodgerblue3", "firebrick1"),
